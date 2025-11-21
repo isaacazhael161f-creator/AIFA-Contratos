@@ -11,9 +11,43 @@ import { OperationData, User, Contract, CommercialSpace, PaasItem } from '../typ
 import { generateOperationalInsight } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
 
-// === IMÁGENES ===
-// Usamos el SVG directo de Wikimedia que suele ser más estable
-const LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/6/6b/Aeropuerto_Internacional_Felipe_%C3%81ngeles_Logo.svg";
+// === COMPONENTE DE LOGO SVG PERSONALIZADO (VERSIÓN COMPACTA) ===
+const AifaLogo = ({ className = "h-10 w-auto" }: { className?: string }) => (
+  <svg viewBox="0 0 240 120" className={className} xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="goldGradSmall" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#C5A065" />
+        <stop offset="100%" stopColor="#997842" />
+      </linearGradient>
+      <linearGradient id="greenGradSmall" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#0F4C3A" />
+        <stop offset="100%" stopColor="#082E23" />
+      </linearGradient>
+    </defs>
+
+    {/* Documento/Contrato Base */}
+    <path 
+      d="M60 20 H 100 L 120 40 V 100 A 5 5 0 0 1 115 105 H 60 A 5 5 0 0 1 55 100 V 25 A 5 5 0 0 1 60 20" 
+      fill="white" 
+      stroke="url(#greenGradSmall)" 
+      strokeWidth="4"
+    />
+    <path d="M100 20 V 40 H 120" fill="#E2E8F0" stroke="none" />
+    
+    {/* Avión Estilizado */}
+    <path 
+      d="M 90 90 C 110 90, 140 60, 160 50 L 190 45 L 180 55 L 165 60 L 195 75 L 185 85 L 150 75 C 130 85, 110 100, 90 90 Z" 
+      fill="url(#goldGradSmall)" 
+      stroke="white" 
+      strokeWidth="2"
+    />
+    {/* Estela */}
+    <path d="M 40 100 Q 80 100 110 80" fill="none" stroke="#9E1B32" strokeWidth="3" strokeLinecap="round" strokeDasharray="4 4"/>
+    
+    {/* Texto minimalista para dashboard */}
+    <text x="135" y="105" fontSize="24" fontWeight="800" fontFamily="Arial" fill="#334155">AIFA</text>
+  </svg>
+);
 
 // === DATOS MOCK DE RESPALDO (FALLBACK) ===
 // Se usan si las tablas no existen en Supabase para mantener el Dashboard funcional y bonito.
@@ -180,12 +214,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col z-20">
         <div className="h-20 flex items-center px-6 border-b border-slate-100">
-           <img 
-                src={LOGO_URL}
-                alt="AIFA Logo" 
-                className="h-10 object-contain mr-3"
-                referrerPolicy="no-referrer"
-          />
+           <AifaLogo className="h-10 w-auto mr-3" />
           <div className="flex flex-col">
             <span className="text-sm font-bold text-slate-900 leading-tight">AIFA</span>
             <span className="text-xs font-bold text-[#B38E5D] tracking-wider">CONTRATOS</span>
@@ -239,7 +268,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-10">
           <div className="flex items-center md:hidden">
-            <img src={LOGO_URL} alt="AIFA" className="h-8 mr-2" referrerPolicy="no-referrer" />
+            <AifaLogo className="h-8 w-auto mr-2" />
             <span className="font-bold text-slate-800">AIFA CONTRATOS</span>
           </div>
 

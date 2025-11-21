@@ -4,15 +4,80 @@ import { supabase } from '../services/supabaseClient';
 
 // === CONFIGURACIÓN DE IMÁGENES ===
 const AIFA_ASSETS = {
-  // He actualizado el link a uno directo SVG que suele cargar mejor
-  logo: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Aeropuerto_Internacional_Felipe_%C3%81ngeles_Logo.svg",
-  
   // Tu imagen de fondo aérea
   background: "https://images.unsplash.com/photo-1626116189797-4482f44a6499?q=80&w=1974&auto=format&fit=crop",
   
   // Escudo de Slots (Placeholder)
   badge: "https://via.placeholder.com/150/000000/FFFFFF/?text=SLOTS" 
 };
+
+// === COMPONENTE DE LOGO SVG PERSONALIZADO (CONTRATO + AVIÓN) ===
+const AifaLogo = ({ className = "h-32 w-auto" }: { className?: string }) => (
+  <svg viewBox="0 0 240 120" className={className} xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#C5A065" />
+        <stop offset="100%" stopColor="#997842" />
+      </linearGradient>
+      <linearGradient id="greenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#0F4C3A" />
+        <stop offset="100%" stopColor="#082E23" />
+      </linearGradient>
+    </defs>
+
+    {/* Documento/Contrato Base */}
+    <path 
+      d="M60 20 H 100 L 120 40 V 100 A 5 5 0 0 1 115 105 H 60 A 5 5 0 0 1 55 100 V 25 A 5 5 0 0 1 60 20" 
+      fill="white" 
+      stroke="url(#greenGradient)" 
+      strokeWidth="3"
+      className="drop-shadow-md"
+    />
+    {/* Líneas de texto del contrato */}
+    <rect x="65" y="35" width="30" height="2" rx="1" fill="#CBD5E1" />
+    <rect x="65" y="45" width="40" height="2" rx="1" fill="#CBD5E1" />
+    <rect x="65" y="55" width="40" height="2" rx="1" fill="#CBD5E1" />
+    <rect x="65" y="65" width="25" height="2" rx="1" fill="#CBD5E1" />
+
+    {/* Esquina doblada */}
+    <path d="M100 20 V 40 H 120" fill="#E2E8F0" stroke="none" />
+
+    {/* Avión Estilizado Despegando (Cruzando el contrato) */}
+    <path 
+      d="M 90 90 
+         C 110 90, 140 60, 160 50 
+         L 190 45 
+         L 180 55 
+         L 165 60 
+         L 195 75 
+         L 185 85 
+         L 150 75 
+         C 130 85, 110 100, 90 90 Z" 
+      fill="url(#goldGradient)" 
+      stroke="white" 
+      strokeWidth="1.5"
+      filter="drop-shadow(0px 4px 4px rgba(0,0,0,0.2))"
+    />
+    
+    {/* Estela de vuelo dinámica */}
+    <path 
+      d="M 40 100 Q 80 100 110 80" 
+      fill="none" 
+      stroke="#9E1B32" 
+      strokeWidth="3" 
+      strokeLinecap="round"
+      strokeDasharray="4 4"
+    />
+
+    {/* Texto AIFA */}
+    <text x="130" y="110" fontSize="14" fontWeight="800" fontFamily="Arial, sans-serif" fill="#334155" letterSpacing="1">
+      AIFA
+    </text>
+    <text x="170" y="110" fontSize="14" fontWeight="300" fontFamily="Arial, sans-serif" fill="#B38E5D" letterSpacing="0.5">
+      CONTRATOS
+    </text>
+  </svg>
+);
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -113,17 +178,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <div className="relative z-20 flex flex-col items-center justify-between h-full py-16 px-10">
             
             {/* Top Logos */}
-            <div className="flex flex-col items-center gap-6">
-              <img 
-                src={AIFA_ASSETS.logo} 
-                alt="AIFA Logo" 
-                className="h-24 w-auto object-contain drop-shadow-lg"
-                referrerPolicy="no-referrer"
-              />
+            <div className="flex flex-col items-center gap-6 w-full">
+              <div className="p-6 bg-white/95 rounded-2xl shadow-xl backdrop-blur-md w-full max-w-xs flex justify-center">
+                <AifaLogo className="h-32 w-full" />
+              </div>
+              
               <div className="h-px w-24 bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
+              
               <h1 className="text-4xl font-bold tracking-tight text-white drop-shadow-md">
-                CONTRATOS <br/>
-                <span className="text-2xl font-light text-slate-200">Y OPERACIONES</span>
+                SISTEMA INTEGRAL <br/>
+                <span className="text-2xl font-light text-slate-200">DE GESTIÓN</span>
               </h1>
             </div>
 
@@ -148,8 +212,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
             {/* Footer Info */}
             <div className="text-xs text-slate-400 max-w-xs leading-relaxed">
-              <p>Sistema Oficial de Gestión Aeroportuaria.</p>
-              <p>Acceso restringido a personal autorizado.</p>
+              <p>Aeropuerto Internacional Felipe Ángeles</p>
+              <p>Acceso exclusivo para personal acreditado.</p>
             </div>
           </div>
         </div>
@@ -160,7 +224,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <div className="max-w-md mx-auto w-full">
             {/* Mobile Logo */}
             <div className="md:hidden flex justify-center mb-8">
-               <img src={AIFA_ASSETS.logo} alt="AIFA Logo" className="h-20 object-contain" referrerPolicy="no-referrer" />
+               <AifaLogo className="h-24 w-64" />
             </div>
 
             <div className="text-center mb-8">
