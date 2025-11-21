@@ -4,7 +4,7 @@ import {
   LogOut, Clock, MapPin, AlertCircle,
   Sparkles, X, Send, FileText, Briefcase, Shield,
   DollarSign, Calendar, Store, PieChart as PieChartIcon,
-  TrendingUp, BarChart2
+  TrendingUp, BarChart2, Plus, Save, Loader2, Pencil, Trash2
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { OperationData, User, Contract, CommercialSpace, PaasItem } from '../types';
@@ -50,7 +50,6 @@ const AifaLogo = ({ className = "h-10 w-auto" }: { className?: string }) => (
 );
 
 // === DATOS MOCK DE RESPALDO (FALLBACK) ===
-// Se usan si las tablas no existen en Supabase para mantener el Dashboard funcional y bonito.
 const MOCK_CONTRACTS: Contract[] = [
   { id: 'm1', provider_name: 'Limpieza Integral S.A.', service_concept: 'Limpieza Terminal Pasajeros', contract_number: 'C-2024-001', start_date: '2024-01-01', end_date: '2024-12-31', amount_mxn: 12500000, status: 'ACTIVO', area: 'Terminal 1' },
   { id: 'm2', provider_name: 'Seguridad Privada Elite', service_concept: 'Vigilancia de Filtros', contract_number: 'C-2024-045', start_date: '2023-06-01', end_date: '2024-06-01', amount_mxn: 8400000, status: 'POR VENCER', area: 'Accesos' },
@@ -85,7 +84,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#B38E5D', '#8884d8'
 
 const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [activeContractSubTab, setActiveContractSubTab] = useState<'general' | 'paas'>('general'); // Sub-tab state
+  const [activeContractSubTab, setActiveContractSubTab] = useState<'general' | 'paas'>('general'); 
   
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
@@ -98,50 +97,59 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [paasData, setPaasData] = useState<PaasItem[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Fetch Data from Supabase
+  // === STATES FOR PAAS RECORD MODAL ===
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null); // ID si estamos editando, null si es nuevo
+
+  // Initial state matches the columns of your table
+  const initialFormState = {
+    "No.": '',
+    "Clave cucop": '',
+    "Nombre del Servicio.": '',
+    "Subdirección": '',
+    "Gerencia": '',
+    "Monto solicitado anteproyecto 2026": 0,
+    "Modificado": 0,
+    "Justificación": ''
+  };
+  const [formState, setFormState] = useState(initialFormState);
+
+  // Fetch Data Function (Separated to allow refreshing)
+  const fetchPaasData = async () => {
+    const { data: paasResults, error: paasError } = await supabase
+      .from('balance_paas_2026')
+      .select('*')
+      .order('id', { ascending: false }); // Show newest first
+    
+    if (paasResults) setPaasData(paasResults);
+    if (paasError) console.error("Error fetching PAAS:", paasError.message);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAllData = async () => {
       try {
         setLoadingData(true);
         
         // 1. Fetch Contracts
-        const { data: contractsData, error: contractsError } = await supabase
+        const { data: contractsData } = await supabase
           .from('contracts')
           .select('*')
           .order('end_date', { ascending: true });
         
-        if (contractsData) {
-          setContracts(contractsData);
-        } else {
-          // Fallback silencioso a Mock Data si la tabla no existe
-          console.warn("Tabla 'contracts' no encontrada o vacía. Usando datos de demostración.");
-          setContracts(MOCK_CONTRACTS);
-        }
+        if (contractsData) setContracts(contractsData);
+        else setContracts(MOCK_CONTRACTS);
 
         // 2. Fetch Commercial Spaces
-        const { data: spacesData, error: spacesError } = await supabase
+        const { data: spacesData } = await supabase
           .from('commercial_spaces')
           .select('*');
 
-        if (spacesData) {
-           setCommercialSpaces(spacesData);
-        } else {
-           console.warn("Tabla 'commercial_spaces' no encontrada o vacía. Usando datos de demostración.");
-           setCommercialSpaces(MOCK_SPACES);
-        }
+        if (spacesData) setCommercialSpaces(spacesData);
+        else setCommercialSpaces(MOCK_SPACES);
 
-        // 3. Fetch PAAS Data (Leyendo la tabla exacta que creó el usuario)
-        const { data: paasResults, error: paasError } = await supabase
-          .from('balance_paas_2026')
-          .select('*');
-        
-        if (paasResults) {
-           setPaasData(paasResults);
-        }
-        
-        if (paasError) {
-           console.error("Error fetching PAAS:", paasError.message);
-        }
+        // 3. Fetch PAAS Data
+        await fetchPaasData();
 
       } catch (e) {
         console.error("Exception fetching data", e);
@@ -150,7 +158,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       }
     };
 
-    fetchData();
+    fetchAllData();
   }, []);
 
   const handleAiQuery = async (e: React.FormEvent) => {
@@ -178,6 +186,94 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     setIsAiThinking(false);
   };
 
+  // === HANDLE FORM INPUT CHANGE ===
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormState(prev => ({
+      ...prev,
+      [name]: (name.includes('Monto') || name === 'Modificado') ? parseFloat(value) || 0 : value
+    }));
+  };
+
+  // === OPEN MODAL FUNCTIONS ===
+  const openNewRecordModal = () => {
+    setEditingId(null);
+    setFormState(initialFormState);
+    setIsModalOpen(true);
+  };
+
+  const openEditRecordModal = (item: PaasItem) => {
+    setEditingId(item.id);
+    setFormState({
+      "No.": item["No."] || '',
+      "Clave cucop": item["Clave cucop"] || '',
+      "Nombre del Servicio.": item["Nombre del Servicio."] || '',
+      "Subdirección": item["Subdirección"] || '',
+      "Gerencia": item["Gerencia"] || '',
+      "Monto solicitado anteproyecto 2026": item["Monto solicitado anteproyecto 2026"] || 0,
+      "Modificado": item["Modificado"] || 0,
+      "Justificación": item["Justificación"] || ''
+    });
+    setIsModalOpen(true);
+  };
+
+  // === HANDLE SUBMIT (CREATE OR UPDATE) ===
+  const handleSaveRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      let error;
+      
+      if (editingId) {
+        // UPDATE EXISTING RECORD
+        const { error: updateError } = await supabase
+          .from('balance_paas_2026')
+          .update(formState)
+          .eq('id', editingId);
+        error = updateError;
+      } else {
+        // CREATE NEW RECORD
+        const { error: insertError } = await supabase
+          .from('balance_paas_2026')
+          .insert([formState]);
+        error = insertError;
+      }
+
+      if (error) throw error;
+
+      // Success
+      await fetchPaasData(); // Refresh table
+      setIsModalOpen(false); // Close modal
+    } catch (error: any) {
+      console.error("Error saving record:", error);
+      alert("Error al guardar: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // === HANDLE DELETE ===
+  const handleDeleteRecord = async (id: number) => {
+    if (!window.confirm("¿Está seguro que desea eliminar este registro? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('balance_paas_2026')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await fetchPaasData(); // Refresh table
+    } catch (error: any) {
+      console.error("Error deleting:", error);
+      alert("Error al eliminar: " + error.message);
+    }
+  };
+
   // Calculos para Gráficas Generales
   const contractStatusData = [
     { name: 'Activos', value: contracts.filter(c => c.status === 'ACTIVO').length },
@@ -185,7 +281,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     { name: 'Vencidos', value: contracts.filter(c => c.status === 'VENCIDO').length },
   ];
 
-  // === LÓGICA NUEVA PARA TU TABLA PAAS ===
   // Agrupar datos por "Gerencia" para graficar el presupuesto
   const paasByGerencia = paasData.reduce((acc: any[], item) => {
     const gerenciaName = item["Gerencia"] || 'Sin Asignar';
@@ -201,7 +296,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       });
     }
     return acc;
-  }, []).sort((a, b) => b.value - a.value); // Ordenar de mayor a menor gasto
+  }, []).sort((a, b) => b.value - a.value);
 
   const formatCurrency = (val: number | null | undefined) => {
     if (val === null || val === undefined) return '$0.00';
@@ -396,9 +491,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                     <h1 className="text-2xl font-bold text-slate-900">Gestión de Contratos</h1>
                     <p className="text-slate-500 text-sm">Administración de servicios, proveedores y presupuestos PAAS.</p>
                   </div>
-                  <button className="bg-[#B38E5D] hover:bg-[#9c7a4d] text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm">
-                    + Nuevo Registro
-                  </button>
+                  
+                  {/* Botón para abrir Modal de Nuevo Registro */}
+                  {activeContractSubTab === 'paas' && (
+                    <button 
+                      onClick={openNewRecordModal}
+                      className="bg-[#B38E5D] hover:bg-[#9c7a4d] text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Nuevo Registro PAAS
+                    </button>
+                  )}
                </div>
 
                {/* Sub-Tabs Navigation */}
@@ -533,13 +636,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                 <th className="px-4 py-3 font-semibold">Gerencia</th>
                                 <th className="px-4 py-3 font-semibold text-right">Monto Solicitado</th>
                                 <th className="px-4 py-3 font-semibold text-right">Modificado</th>
+                                <th className="px-4 py-3 font-semibold">Justificación</th>
+                                <th className="px-4 py-3 font-semibold text-center">Acciones</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                               {loadingData ? (
-                                <tr><td colSpan={6} className="text-center py-8">Cargando PAAS...</td></tr>
+                                <tr><td colSpan={8} className="text-center py-8">Cargando PAAS...</td></tr>
                               ) : paasData.length === 0 ? (
-                                <tr><td colSpan={6} className="text-center py-8 text-slate-500">No hay registros en el PAAS 2026.</td></tr>
+                                <tr><td colSpan={8} className="text-center py-8 text-slate-500">No hay registros en el PAAS 2026.</td></tr>
                               ) : paasData.map((item) => (
                                   <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-4 py-3 text-slate-500">{item["No."]}</td>
@@ -551,6 +656,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono text-slate-500">
                                        {formatCurrency(item["Modificado"])}
+                                    </td>
+                                    <td className="px-4 py-3 text-slate-600 text-xs whitespace-pre-wrap break-words max-w-xs">
+                                       {item["Justificación"] || '-'}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <div className="flex justify-center gap-2">
+                                        <button 
+                                          onClick={() => openEditRecordModal(item)}
+                                          className="p-1.5 text-slate-400 hover:text-[#B38E5D] hover:bg-[#B38E5D]/10 rounded-md transition-colors"
+                                          title="Editar"
+                                        >
+                                          <Pencil className="h-4 w-4" />
+                                        </button>
+                                        <button 
+                                          onClick={() => handleDeleteRecord(item.id)}
+                                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                          title="Eliminar"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </button>
+                                      </div>
                                     </td>
                                   </tr>
                               ))}
@@ -632,6 +758,139 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
         </div>
       </main>
+
+      {/* === MODAL PARA NUEVO/EDITAR REGISTRO PAAS === */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                {editingId ? <Pencil className="h-5 w-5 text-[#B38E5D]" /> : <Plus className="h-5 w-5 text-[#B38E5D]" />}
+                {editingId ? 'Editar Registro PAAS' : 'Nuevo Registro PAAS 2026'}
+              </h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <form onSubmit={handleSaveRecord} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div className="col-span-1">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">No.</label>
+                  <input 
+                    name="No." 
+                    value={formState["No."]} 
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#B38E5D]/50 outline-none"
+                  />
+                </div>
+
+                <div className="col-span-1">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Clave CUCOP</label>
+                  <input 
+                    name="Clave cucop" 
+                    value={formState["Clave cucop"]} 
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#B38E5D]/50 outline-none"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Nombre del Servicio</label>
+                  <input 
+                    name="Nombre del Servicio." 
+                    value={formState["Nombre del Servicio."]} 
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#B38E5D]/50 outline-none"
+                    required
+                  />
+                </div>
+
+                <div className="col-span-1">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Subdirección</label>
+                  <input 
+                    name="Subdirección" 
+                    value={formState["Subdirección"]} 
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#B38E5D]/50 outline-none"
+                  />
+                </div>
+
+                <div className="col-span-1">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Gerencia</label>
+                  <input 
+                    name="Gerencia" 
+                    value={formState["Gerencia"]} 
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#B38E5D]/50 outline-none"
+                  />
+                </div>
+
+                <div className="col-span-1">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Monto Solicitado (Anteproyecto)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-slate-400 text-sm">$</span>
+                    <input 
+                      type="number"
+                      name="Monto solicitado anteproyecto 2026" 
+                      value={formState["Monto solicitado anteproyecto 2026"]} 
+                      onChange={handleInputChange}
+                      className="w-full pl-6 p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#B38E5D]/50 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="col-span-1">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Monto Modificado</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-slate-400 text-sm">$</span>
+                    <input 
+                      type="number"
+                      name="Modificado" 
+                      value={formState["Modificado"]} 
+                      onChange={handleInputChange}
+                      className="w-full pl-6 p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#B38E5D]/50 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Justificación</label>
+                  <textarea 
+                    name="Justificación" 
+                    value={formState["Justificación"]} 
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#B38E5D]/50 outline-none"
+                  />
+                </div>
+
+                <div className="col-span-2 mt-4 flex justify-end gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-[#B38E5D] hover:bg-[#9c7a4d] text-white font-bold rounded-lg shadow-lg transition-colors flex items-center gap-2"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {editingId ? 'Guardar Cambios' : 'Guardar Registro'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Chat Overlay */}
       {isAiChatOpen && (
