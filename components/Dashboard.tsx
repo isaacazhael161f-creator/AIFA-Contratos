@@ -625,4 +625,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               <form onSubmit={handleAiQuery} className="flex gap-2">
                 <input 
                   value={aiQuery}
-                  onChange={e => setAiQuery
+                  onChange={e => setAiQuery(e.target.value)}
+                  placeholder="Escribe tu consulta..."
+                  className="flex-1 bg-slate-100 border-none rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-[#B38E5D] outline-none"
+                />
+                <button 
+                  type="submit" 
+                  disabled={isAiThinking}
+                  className="bg-[#B38E5D] text-white p-2 rounded-lg hover:bg-[#9c7a4d] disabled:opacity-50"
+                >
+                  {isAiThinking ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"/> : <Send className="h-4 w-4" />}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Dashboard;

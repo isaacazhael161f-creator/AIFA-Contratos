@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 
 // Helper to get the API key safely
 const getApiKey = (): string | undefined => {
-  return import.meta.env.VITE_API_KEY;
+  return process.env.API_KEY;
 };
 
 export const generateOperationalInsight = async (
