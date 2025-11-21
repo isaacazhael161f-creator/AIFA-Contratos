@@ -12,7 +12,8 @@ import { generateOperationalInsight } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
 
 // === IMÁGENES ===
-const LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Aeropuerto_Internacional_Felipe_%C3%81ngeles_Logo.svg/1024px-Aeropuerto_Internacional_Felipe_%C3%81ngeles_Logo.svg.png";
+// Usamos el SVG directo de Wikimedia que suele ser más estable
+const LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/6/6b/Aeropuerto_Internacional_Felipe_%C3%81ngeles_Logo.svg";
 
 // === DATOS MOCK DE RESPALDO (FALLBACK) ===
 // Se usan si las tablas no existen en Supabase para mantener el Dashboard funcional y bonito.
@@ -183,6 +184,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 src={LOGO_URL}
                 alt="AIFA Logo" 
                 className="h-10 object-contain mr-3"
+                referrerPolicy="no-referrer"
           />
           <div className="flex flex-col">
             <span className="text-sm font-bold text-slate-900 leading-tight">AIFA</span>
@@ -237,7 +239,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-10">
           <div className="flex items-center md:hidden">
-            <img src={LOGO_URL} alt="AIFA" className="h-8 mr-2" />
+            <img src={LOGO_URL} alt="AIFA" className="h-8 mr-2" referrerPolicy="no-referrer" />
             <span className="font-bold text-slate-800">AIFA CONTRATOS</span>
           </div>
 

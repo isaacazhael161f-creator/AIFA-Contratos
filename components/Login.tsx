@@ -3,16 +3,14 @@ import { ArrowRight, User, Lock, Mail, UserPlus, AlertTriangle, CheckCircle, Key
 import { supabase } from '../services/supabaseClient';
 
 // === CONFIGURACIÓN DE IMÁGENES ===
-// Instrucciones: Reemplaza las URLs dentro de las comillas con los links de tus imágenes reales.
 const AIFA_ASSETS = {
-  // Logo oficial AIFA
-  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Aeropuerto_Internacional_Felipe_%C3%81ngeles_Logo.svg/1024px-Aeropuerto_Internacional_Felipe_%C3%81ngeles_Logo.svg.png",
+  // He actualizado el link a uno directo SVG que suele cargar mejor
+  logo: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Aeropuerto_Internacional_Felipe_%C3%81ngeles_Logo.svg",
   
-  // Tu imagen de fondo aérea (He puesto una temporal de alta calidad que se parece)
+  // Tu imagen de fondo aérea
   background: "https://images.unsplash.com/photo-1626116189797-4482f44a6499?q=80&w=1974&auto=format&fit=crop",
   
-  // El escudo de "Coordinación de Slots"
-  // Si no tienes URL aún, se muestra un escudo genérico. Pega tu URL aquí:
+  // Escudo de Slots (Placeholder)
   badge: "https://via.placeholder.com/150/000000/FFFFFF/?text=SLOTS" 
 };
 
@@ -120,6 +118,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 src={AIFA_ASSETS.logo} 
                 alt="AIFA Logo" 
                 className="h-24 w-auto object-contain drop-shadow-lg"
+                referrerPolicy="no-referrer"
               />
               <div className="h-px w-24 bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
               <h1 className="text-4xl font-bold tracking-tight text-white drop-shadow-md">
@@ -133,11 +132,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-[#B38E5D] to-[#9E1B32] rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
                 <div className="relative h-32 w-32 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl">
-                   {/* Si el usuario tiene la URL del badge, se muestra, si no, un icono */}
                    {AIFA_ASSETS.badge.includes('placeholder') ? (
                       <ShieldCheck className="h-16 w-16 text-[#B38E5D]" />
                    ) : (
-                      <img src={AIFA_ASSETS.badge} alt="Badge Slots" className="h-28 w-28 object-contain rounded-full" />
+                      <img src={AIFA_ASSETS.badge} alt="Badge Slots" className="h-28 w-28 object-contain rounded-full" referrerPolicy="no-referrer" />
                    )}
                 </div>
               </div>
@@ -162,7 +160,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <div className="max-w-md mx-auto w-full">
             {/* Mobile Logo */}
             <div className="md:hidden flex justify-center mb-8">
-               <img src={AIFA_ASSETS.logo} alt="AIFA Logo" className="h-20 object-contain" />
+               <img src={AIFA_ASSETS.logo} alt="AIFA Logo" className="h-20 object-contain" referrerPolicy="no-referrer" />
             </div>
 
             <div className="text-center mb-8">
